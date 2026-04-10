@@ -7,6 +7,7 @@ on:
 jobs:
   sast:
     runs-on: ubuntu-latest
+
     steps:
       - name: Checkout
         uses: actions/checkout@v3
@@ -19,6 +20,6 @@ jobs:
       - name: Send results to backend
         run: python3 .scanner/scripts/send_sast.py
         env:
-          BACKEND_API_URL: ${{ secrets.BACKEND_API_URL }}
+          BACKEND_API_URL: ${{ vars.BACKEND_API_URL }}
           INGEST_TOKEN_SAST: ${{ secrets.INGEST_TOKEN_SAST }}
-          S3_KEY: "sast-reports/${{ github.repository }}-${{ github.run_id }}.json"
+          S3_KEY: sast-reports/${{ github.repository }}-${{ github.run_id }}.json
