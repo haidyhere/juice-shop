@@ -2,17 +2,23 @@ name: SAST Scan
 
 on:
   push:
-    branches: [main]
-  pull_request:
+  workflow_dispatch:
 
 jobs:
   sast:
-    uses: JasmineH-H/SAST-Pentest-Tool/.github/workflows/sast.yml@main
-    with:
-      BACKEND_API_URL: ${{ vars.BACKEND_API_URL }}
-      S3_BUCKET: ${{ vars.S3_BUCKET }}
-    secrets:
-      INGEST_TOKEN_SAST: ${{ secrets.INGEST_TOKEN_SAST }}
-      AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-      AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-      AWS_SESSION_TOKEN: ${{ secrets.AWS_SESSION_TOKEN }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Run Semgrep
+        run: |
+          pip install semgrep
+          semgrep --config auto --json > sast-result.json
+
+      - name: Send results to backend
+        run: python3 .scanner/scripts/send_sast.py
+        env:
+          BACKEND_API_URL: ${{ secrets.BACKEND_API_URL }}
+          INGEST_TOKEN_SAST: ${{ secrets.INGEST_TOKEN_SAST }}
+          S3_KEY: "sast-reports/${{ github.repository }}-${{ github.run_id }}.json"
