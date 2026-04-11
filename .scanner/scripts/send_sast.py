@@ -20,23 +20,30 @@ severity_counts = {
 
 top_findings = []
 
+# Map Semgrep severities to dashboard/backend severities
+severity_map = {
+    "error": "high",
+    "warning": "medium",
+    "info": "low",
+}
+
 for r in results:
     if not isinstance(r, dict):
         continue
 
-    severity = r.get("extra", {}).get("severity", "").lower()
+    severity_raw = r.get("extra", {}).get("severity", "").lower()
+    severity = severity_map.get(severity_raw, "low")
 
-    if severity in severity_counts:
-        severity_counts[severity] += 1
+    severity_counts[severity] += 1
 
     top_findings.append({
-        "message": r.get("extra", {}).get("message", ""),
+        "title": r.get("check_id", "Semgrep finding"),
         "severity": severity,
-        "file": r.get("path", ""),
-        "line": r.get("start", {}).get("line", 0),
+        "location": f"{r.get('path', '')}:{r.get('start', {}).get('line', 0)}",
+        "recommendation": r.get("extra", {}).get("message", ""),
     })
 
-total_findings = len(results)
+total_findings = len(top_findings)
 
 # Risk score
 risk_score = (
@@ -46,7 +53,7 @@ risk_score = (
     severity_counts["low"] * 1
 )
 
-# Payload
+# Build payload for backend
 payload = {
     "repo": os.environ.get("GITHUB_REPOSITORY", "unknown"),
     "runId": os.environ.get("GITHUB_RUN_ID", "unknown"),
@@ -63,7 +70,6 @@ payload = {
     },
 }
 
-# Send request
 token = os.environ["INGEST_TOKEN_SAST"]
 base_url = os.environ["BACKEND_API_URL"].rstrip("/")
 url = f"{base_url}/ingest/sast"
